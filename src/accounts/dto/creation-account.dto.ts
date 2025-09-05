@@ -1,5 +1,4 @@
-import { IsEmail, MinLength, IsNotEmpty, IsBoolean } from 'class-validator';
-import { Role } from 'src/common/enums/role.enum';
+import { IsEmail, MinLength, IsNotEmpty} from 'class-validator';
 
 export class CreateAccountDto {
 
@@ -12,7 +11,4 @@ export class CreateAccountDto {
   @IsNotEmpty({ message: 'Name không được để trống'})
   name: string;
 
-  @IsBoolean()
-  isActive: boolean = true;
-  role: Role = Role.USER;
 }

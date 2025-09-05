@@ -1,5 +1,4 @@
 import { IsEmail, MinLength, IsNotEmpty, IsBoolean } from 'class-validator';
-import { Role } from 'src/common/enums/role.enum';
 
 export class UpdateAccountDto {
 
@@ -12,6 +11,6 @@ export class UpdateAccountDto {
   @IsNotEmpty({ message: 'Name không được để trống'})
   name: string;
 
-  @IsBoolean()
-  isActive: boolean = true;
+  @IsBoolean({ message: 'isActive phải là giá trị boolean'})
+  isActive: boolean;
 }
