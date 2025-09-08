@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/guards/auth.guard';
 import { RolesGuard } from './auth/guards/role.guard';
 import { GoalCategoryModule } from './goalCategories/goalCategory.module';
+import { GoalModule } from './goal/goal.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { GoalCategoryModule } from './goalCategories/goalCategory.module';
     AccountModule,
     AuthModule,
     GoalCategoryModule,
+    GoalModule,
   ],
   controllers: [AppController],
   providers: [

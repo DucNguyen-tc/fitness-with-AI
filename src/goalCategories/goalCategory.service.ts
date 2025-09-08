@@ -5,7 +5,6 @@ import { Model } from "mongoose";
 import { CreateGoalCategoryDto } from "./dto/creation-goalCategory.dto";
 import { ResponseGoalCategoryDto } from "./dto/response-goadCategory.dto";
 import { plainToInstance } from 'class-transformer';
-import { NotFoundError } from "rxjs";
 
 @Injectable() // Đánh dấu lớp này là một provider có thể được tiêm vào các lớp khác
 export class GoalCategoryService {
