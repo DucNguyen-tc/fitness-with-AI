@@ -8,8 +8,11 @@ import { AuthModule } from './auth/auth.model';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/guards/auth.guard';
 import { RolesGuard } from './auth/guards/role.guard';
-import { GoalCategoryModule } from './goalCategories/goalCategory.module';
-import { GoalModule } from './goal/goal.module';
+import { UserModule } from './users/user.module';
+import { MuscleGroupModule } from './muscleGroup/muscleGroup.module';
+import { PlanModule } from './plans/plan.module';
+import { ProcessModule } from './processes/process.module';
+import { WorkoutModule } from './workouts/workout.module';
 
 @Module({
   imports: [
@@ -21,8 +24,11 @@ import { GoalModule } from './goal/goal.module';
     ),
     AccountModule,
     AuthModule,
-    GoalCategoryModule,
-    GoalModule,
+    UserModule,
+    MuscleGroupModule,
+    WorkoutModule,
+    PlanModule,
+    ProcessModule,
   ],
   controllers: [AppController],
   providers: [
