@@ -5,12 +5,13 @@ import { Model } from 'mongoose';
 import { CreatePlanDto } from './dto/creation-plan.dto';
 import { PlanResponseDto } from './dto/response-plan.dto';
 import { plainToInstance } from 'class-transformer';
+import { UserDocument, User } from 'src/users/user.schema';
 
 @Injectable()
 export class PlanService {
   constructor(
-    @InjectModel(Plan.name)
-    private readonly planModel: Model<PlanDocument>,
+    @InjectModel(Plan.name) private readonly planModel: Model<PlanDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
   async create(createDto: CreatePlanDto): Promise<PlanResponseDto> {
@@ -55,5 +56,14 @@ export class PlanService {
   async remove(id: string): Promise<string> {
     await this.planModel.findByIdAndDelete(id).exec();
     return 'Xoá lộ trình tập thành công';
+  }
+
+  async findByUser(userId: string): Promise<PlanResponseDto[]> {
+    const plans = await this.planModel.find({ userId }).exec();
+    return plans.map((plan) =>
+      plainToInstance(PlanResponseDto, plan.toObject(), {
+        excludeExtraneousValues: true,
+      }),
+    );
   }
 }

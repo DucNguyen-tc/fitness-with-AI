@@ -1,5 +1,5 @@
 export enum FitnessLevel {
-  BEGINNER = 'BEGINNER',
-  INTERMEDIATE = 'INTERMEDIATE',
-  ADVANCED = 'ADVANCED',
+  BEGINNER = 'Mới bắt đầu',
+  INTERMEDIATE = 'Trung bình',
+  ADVANCED = 'Nâng cao',
 }

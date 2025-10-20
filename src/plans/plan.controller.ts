@@ -30,4 +30,9 @@ export class PlanController {
   remove(@Param('id') id: string) {
     return this.planService.remove(id);
   }
+
+  @Get('user/:userId')
+  findByUser(@Param('userId') userId: string) {
+    return this.planService.findByUser(userId);
+  }
 }

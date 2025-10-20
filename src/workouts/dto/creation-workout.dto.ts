@@ -9,7 +9,6 @@ import {
   Min,
 } from 'class-validator';
 import { DifficultyLevel } from '../../common/enums/difficulty-level.enum';
-import { WorkoutTime } from '../../common/enums/workout-time.enum';
 
 export class CreateWorkoutDto {
   @IsNotEmpty({ message: 'Tên bài tập không được để trống' })
@@ -26,12 +25,6 @@ export class CreateWorkoutDto {
     message: 'Độ khó phải là BEGINNER, INTERMEDIATE hoặc ADVANCED',
   })
   difficulty: DifficultyLevel;
-
-  @IsNotEmpty({ message: 'Thời gian không được để trống' })
-  @IsEnum(WorkoutTime, {
-    message: 'Thời gian phải là 30, 60 hoặc 90 giây',
-  })
-  time: WorkoutTime;
 
   @IsArray({ message: 'instructions phải là một mảng chuỗi' })
   @ArrayMinSize(1, { message: 'Phải có ít nhất một bước hướng dẫn' })

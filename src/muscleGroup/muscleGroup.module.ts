@@ -10,5 +10,6 @@ import { MuscleGroupController } from './muscleGroup.controller';
   ], // Đăng ký schema với Mongoose
   controllers: [MuscleGroupController],
   providers: [MuscleGroupService],
+  exports: [MongooseModule]
 })
 export class MuscleGroupModule {}

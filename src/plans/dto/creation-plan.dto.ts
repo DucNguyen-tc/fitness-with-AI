@@ -1,18 +1,22 @@
 import {
   IsNotEmpty,
-  IsEnum,
+  IsMongoId,
   IsNumber,
   Min,
-  ValidateNested,
   IsDateString,
+  IsEnum,
   IsArray,
   ArrayMinSize,
-  IsMongoId,
+  ValidateNested,
+  IsOptional,
+  IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PlanStatus } from '../../common/enums/status-plan.enum';
+import { Status } from 'src/common/enums/status.enum';
+import { DifficultyRating } from 'src/common/enums/difficulty-rating.enum';
+import { AiAction } from 'src/common/enums/ai-action.enum';
 
-class ExerciseDto {
+export class ExerciseDto {
   @IsNotEmpty()
   @IsMongoId({ message: 'workoutId phải là ObjectId hợp lệ' })
   workoutId: string;
@@ -24,9 +28,13 @@ class ExerciseDto {
   @IsNumber()
   @Min(0, { message: 'Thời gian nghỉ phải ≥ 0 giây' })
   restTime: number;
+
+  @IsNumber()
+  @Min(0, { message: 'Thời gian nghỉ phải ≥ 0 giây' })
+  workTime: number;
 }
 
-class SessionDto {
+export class SessionDto {
   @IsNumber()
   @Min(1, { message: 'Số buổi tập phải ≥ 1' })
   sessionNumber: number;
@@ -48,10 +56,44 @@ class SessionDto {
   @Type(() => ExerciseDto)
   exercises: ExerciseDto[];
 
-  @IsEnum(PlanStatus, {
-    message: 'Trạng thái phải là INCOMPLETE hoặc COMPLETED',
+  @IsEnum(Status, {
+    message: 'Trạng thái buổi tập phải là COMPLETE, PENDING hoặc SKIPPED',
   })
-  status: PlanStatus;
+  status: Status;
+}
+
+export class ProgressMetricsDto {
+  @IsOptional()
+  @IsNumber()
+  endOfWeekWeight?: number;
+
+  @IsOptional()
+  @IsString()
+  endOfWeekBodyFat?: string;
+}
+
+export class ProgressDto {
+  @IsEnum(DifficultyRating, {
+    message: 'Đánh giá độ khó phải là EASY, MEDIUM hoặc HARD',
+  })
+  difficultRating: DifficultyRating;
+
+  @ValidateNested()
+  @Type(() => ProgressMetricsDto)
+  metrics: ProgressMetricsDto;
+
+  @IsDateString({}, { message: 'Ngày gửi feedback phải là định dạng ISO' })
+  submittedAt: string;
+}
+
+export class AIDecisionDto {
+  @IsEnum(AiAction, {
+    message: 'Hành động AI phải là INCREASE, DECREASE hoặc MAINTAIN_DIFFICULTY',
+  })
+  actionTaken: AiAction;
+
+  @IsMongoId({ message: 'nextWeekPlanId phải là ObjectId hợp lệ' })
+  nextWeekPlanId: string;
 }
 
 export class CreatePlanDto {
@@ -69,8 +111,18 @@ export class CreatePlanDto {
   @Type(() => SessionDto)
   sessions: SessionDto[];
 
-  @IsEnum(PlanStatus, {
-    message: 'Trạng thái phải là INCOMPLETE hoặc COMPLETED',
+  @IsEnum(Status, {
+    message: 'Trạng thái kế hoạch phải là ACTIVE, COMPLETED hoặc CANCELLED',
   })
-  status: PlanStatus;
+  status: Status;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProgressDto)
+  progress?: ProgressDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AIDecisionDto)
+  aiDecision?: AIDecisionDto;
 }

@@ -27,6 +27,7 @@ export class AuthService {
     const payload = {
       sub: account._id.toString(),
       email: account.email,
+      name: account.name,
       role: account.role,
     };
     const accessToken = await this.jwtService.signAsync(payload, {
@@ -65,6 +66,7 @@ export class AuthService {
     const newPayload = {
       sub: account?._id.toString(),
       email: account?.email,
+      name: account?.name,
       role: account?.role,
     };
     const accessToken = await this.jwtService.signAsync(newPayload, {

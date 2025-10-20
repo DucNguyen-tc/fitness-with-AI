@@ -30,4 +30,9 @@ export class UserController {
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
   }
+
+  @Get('/account/:accountId')
+  findByAccountId(@Param('accountId') accountId: string) {
+    return this.userService.findByAccountId(accountId);
+  }
 }

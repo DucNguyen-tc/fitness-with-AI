@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { DifficultyLevel } from '../common/enums/difficulty-level.enum';
-import { WorkoutTime } from '../common/enums/workout-time.enum';
 
 export type WorkoutDocument = HydratedDocument<Workout>;
 
@@ -18,9 +17,6 @@ export class Workout {
 
   @Prop({ required: true, enum: DifficultyLevel })
   difficulty: DifficultyLevel;
-
-  @Prop({ required: true, enum: WorkoutTime })
-  time: WorkoutTime;
 
   @Prop({ type: [String], required: true })
   instructions: string[];

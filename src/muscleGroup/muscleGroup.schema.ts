@@ -14,7 +14,7 @@ export class MuscleGroup {
   displayName: string; // Ví dụ: "Ngực"
 
   @Prop({ required: true})
-  imageUrl: string;
+  imageURL: string;
 
   @Prop({ required: true })
   description: string; // Ví dụ: "Các bài tập cho nhóm cơ ngực"

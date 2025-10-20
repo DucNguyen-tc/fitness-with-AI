@@ -11,7 +11,6 @@ import { RolesGuard } from './auth/guards/role.guard';
 import { UserModule } from './users/user.module';
 import { MuscleGroupModule } from './muscleGroup/muscleGroup.module';
 import { PlanModule } from './plans/plan.module';
-import { ProcessModule } from './processes/process.module';
 import { WorkoutModule } from './workouts/workout.module';
 
 @Module({
@@ -28,7 +27,6 @@ import { WorkoutModule } from './workouts/workout.module';
     MuscleGroupModule,
     WorkoutModule,
     PlanModule,
-    ProcessModule,
   ],
   controllers: [AppController],
   providers: [

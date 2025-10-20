@@ -10,6 +10,6 @@ import { AccountController } from './account.controller';
   ], // Đăng ký schema với Mongoose
   controllers: [AccountController],
   providers: [AccountService],
-  exports: [AccountService], // Export AccountService để có thể sử dụng ở module khác
+  exports: [AccountService, MongooseModule], // Export AccountService để có thể sử dụng ở module khác
 })
 export class AccountModule {}

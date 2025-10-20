@@ -1,4 +1,4 @@
-export enum PlanStatus {
+export enum Status {
   INCOMPLETE = 'INCOMPLETE',
   COMPLETED = 'COMPLETED',
 }

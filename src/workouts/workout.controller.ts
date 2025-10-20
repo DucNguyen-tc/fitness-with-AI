@@ -30,4 +30,9 @@ export class WorkoutController {
   remove(@Param('id') id: string) {
     return this.workoutService.remove(id);
   }
+
+  @Get('by-muscle-group/:query')
+findByMuscleGroup(@Param('query') query: string) {
+  return this.workoutService.findByMuscleGroup(query);
+}
 }

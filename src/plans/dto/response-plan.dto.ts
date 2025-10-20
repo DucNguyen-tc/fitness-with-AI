@@ -1,16 +1,18 @@
-import { Expose, Transform, Type } from 'class-transformer';
-import { PlanStatus } from '../../common/enums/status-plan.enum';
+import { Expose, Type } from 'class-transformer';
+import { Types } from 'mongoose';
 
 export class ExerciseResponseDto {
   @Expose()
-  @Transform(({ obj }) => obj.workoutId.toString())
-  workoutId: string;
+  workoutId: Types.ObjectId;
 
   @Expose()
   order: number;
 
   @Expose()
   restTime: number;
+
+  @Expose()
+  workTime: number;
 }
 
 export class SessionResponseDto {
@@ -31,28 +33,62 @@ export class SessionResponseDto {
   exercises: ExerciseResponseDto[];
 
   @Expose()
-  status: PlanStatus;
+  status: string;
+}
+
+export class ProgressMetricsResponseDto {
+  @Expose()
+  endOfWeekWeight: number;
+
+  @Expose()
+  endOfWeekBodyFat: string;
+}
+
+export class ProgressResponseDto {
+  @Expose()
+  difficultRating: string;
+
+  @Expose()
+  @Type(() => ProgressMetricsResponseDto)
+  metrics: ProgressMetricsResponseDto;
+
+  @Expose()
+  submittedAt: Date;
+}
+
+export class AIDecisionResponseDto {
+  @Expose()
+  actionTaken: string;
+
+  @Expose()
+  nextWeekPlanId: Types.ObjectId;
 }
 
 export class PlanResponseDto {
   @Expose()
-  @Transform(({ obj }) => obj._id.toString())
-  _id: string;
+  _id: Types.ObjectId;
 
   @Expose()
-  @Transform(({ obj }) => obj.userId.toString())
-  userId: string;
+  userId: Types.ObjectId;
 
   @Expose()
   currentWeek: number;
+
+  @Expose()
+  status: string;
 
   @Expose()
   @Type(() => SessionResponseDto)
   sessions: SessionResponseDto[];
 
   @Expose()
-  status: PlanStatus;
+  @Type(() => ProgressResponseDto)
+  progress?: ProgressResponseDto;
 
   @Expose()
-  createdAt: Date;
+  @Type(() => AIDecisionResponseDto)
+  aiDecision?: AIDecisionResponseDto;
+
+  @Expose()
+  createdAt?: Date;
 }
