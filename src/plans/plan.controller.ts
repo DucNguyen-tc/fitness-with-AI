@@ -1,6 +1,8 @@
-import { Controller, Post, Body, Get, Put, Delete, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Delete, Param } from '@nestjs/common';
 import { PlanService } from './plan.service';
 import { CreatePlanDto } from './dto/creation-plan.dto';
+import { UpdatePlanDto } from './dto/update-plan.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @Controller('plan')
 export class PlanController {
@@ -21,9 +23,13 @@ export class PlanController {
     return this.planService.findOne(id);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updateDto: CreatePlanDto) {
-    return this.planService.update(id, updateDto);
+  @Patch(':planId/sessions/:sessionId')
+  async updateSessionStatus(
+    @Param('planId') planId: string,
+    @Param('sessionId') sessionId: string,
+    @Body() body: { status: string },
+  ) {
+    return this.planService.updateSessionStatus(planId, sessionId, body.status);
   }
 
   @Delete(':id')
@@ -34,5 +40,25 @@ export class PlanController {
   @Get('user/:userId')
   findByUser(@Param('userId') userId: string) {
     return this.planService.findByUser(userId);
+  }
+
+  @Public()
+  @Post('/create-initial/:userId')
+  async createInitialPlan(@Param('userId') userId: string) {
+    // 1. GỌI AI ĐỂ LẤY ID
+    // userData là toàn bộ profile + goals mà user mới nhập
+    const recommendedPlanId = await this.planService.getInitialPlanFromAI(userId);
+
+    // 2. LẤY CHI TIẾT PLAN TỪ DATABASE
+    // Sau khi có plan_id, bạn dùng nó để truy vấn collection 'plans'
+    // const planDetails = await this.planCollectionService.findById(recommendedPlanId);
+    
+    // (Chỗ này bạn có thể phải "sao chép" planDetails,
+    // gán userId mới của người dùng, weekNumber = 1,
+    // và lưu một bản mới vào collection 'plans' cho user mới này)
+
+    // 3. TRẢ KẾ HOẠCH VỀ CHO REACTJS
+    // return planDetails; // (Hoặc bản plan mới đã sao chép)
+    return { planId: recommendedPlanId }; // Trả về ID để test
   }
 }

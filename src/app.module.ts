@@ -12,6 +12,7 @@ import { UserModule } from './users/user.module';
 import { MuscleGroupModule } from './muscleGroup/muscleGroup.module';
 import { PlanModule } from './plans/plan.module';
 import { WorkoutModule } from './workouts/workout.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { WorkoutModule } from './workouts/workout.module';
     MuscleGroupModule,
     WorkoutModule,
     PlanModule,
+    HttpModule,
   ],
   controllers: [AppController],
   providers: [

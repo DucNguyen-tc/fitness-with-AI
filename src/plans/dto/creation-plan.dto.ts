@@ -57,7 +57,7 @@ export class SessionDto {
   exercises: ExerciseDto[];
 
   @IsEnum(Status, {
-    message: 'Trạng thái buổi tập phải là COMPLETE, PENDING hoặc SKIPPED',
+    message: 'Trạng thái buổi tập phải là COMPLETED, INCOMPLETE'
   })
   status: Status;
 }
@@ -112,7 +112,7 @@ export class CreatePlanDto {
   sessions: SessionDto[];
 
   @IsEnum(Status, {
-    message: 'Trạng thái kế hoạch phải là ACTIVE, COMPLETED hoặc CANCELLED',
+    message: 'Trạng thái kế hoạch phải là COMPLETED, INCOMPLETE',
   })
   status: Status;
 

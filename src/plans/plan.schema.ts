@@ -26,7 +26,7 @@ export class Session {
   @Prop({ required: true })
   sessionNumber: number;
 
-  @Prop({ required: true })
+  @Prop()
   targetDate: Date;
 
   @Prop({ required: true })

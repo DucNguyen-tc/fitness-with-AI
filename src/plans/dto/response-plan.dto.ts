@@ -17,6 +17,9 @@ export class ExerciseResponseDto {
 
 export class SessionResponseDto {
   @Expose()
+  _id: Types.ObjectId;
+  
+  @Expose()
   sessionNumber: number;
 
   @Expose()
