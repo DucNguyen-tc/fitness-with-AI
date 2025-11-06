@@ -62,25 +62,15 @@ export class SessionDto {
   status: Status;
 }
 
-export class ProgressMetricsDto {
-  @IsOptional()
-  @IsNumber()
-  endOfWeekWeight?: number;
-
-  @IsOptional()
-  @IsString()
-  endOfWeekBodyFat?: string;
-}
-
 export class ProgressDto {
   @IsEnum(DifficultyRating, {
     message: 'Đánh giá độ khó phải là EASY, MEDIUM hoặc HARD',
   })
   difficultRating: DifficultyRating;
 
-  @ValidateNested()
-  @Type(() => ProgressMetricsDto)
-  metrics: ProgressMetricsDto;
+  @IsOptional()
+  @IsNumber()
+  endOfWeekWeight?: number;
 
   @IsDateString({}, { message: 'Ngày gửi feedback phải là định dạng ISO' })
   submittedAt: string;

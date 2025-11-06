@@ -1,14 +1,19 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Plan, PlanDocument } from './plan.schema';
 import { Model } from 'mongoose';
-import { CreatePlanDto } from './dto/creation-plan.dto';
+import { CreatePlanDto, ProgressDto } from './dto/creation-plan.dto';
 import { PlanResponseDto } from './dto/response-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { plainToInstance } from 'class-transformer';
 import { UserDocument, User } from 'src/users/user.schema';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { Status } from 'src/common/enums/status.enum';
 
 @Injectable()
 export class PlanService {
@@ -16,7 +21,7 @@ export class PlanService {
   constructor(
     @InjectModel(Plan.name) private readonly planModel: Model<PlanDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private readonly httpService: HttpService
+    private readonly httpService: HttpService,
   ) {}
 
   async create(createDto: CreatePlanDto): Promise<PlanResponseDto> {
@@ -62,22 +67,135 @@ export class PlanService {
     });
   }
 
-  async updateSessionStatus(planId: string, sessionId: string, status: string) {
+  //   async updateSessionStatus(planId: string, sessionId: string, status: string, targetDate: Date) {
+  //   const updatedPlan = await this.planModel.findOneAndUpdate(
+  //     { _id: planId, 'sessions._id': sessionId },
+  //     {
+  //       $set: {
+  //         'sessions.$.status': status,
+  //         'sessions.$.targetDate': targetDate,
+  //       },
+  //     },
+  //     { new: true },
+  //   );
+
+  //   if (!updatedPlan) {
+  //     throw new NotFoundException('Không tìm thấy plan hoặc session để cập nhật');
+  //   }
+
+  //   return updatedPlan;
+  // }
+
+  async updateSessionStatus(
+    planId: string,
+    sessionId: string,
+    status: string,
+    targetDate: Date,
+  ) {
+    // ✅ Cập nhật session cụ thể
     const updatedPlan = await this.planModel.findOneAndUpdate(
       { _id: planId, 'sessions._id': sessionId },
-      { $set: { 'sessions.$.status': status } },
+      {
+        $set: {
+          'sessions.$.status': status,
+          'sessions.$.targetDate': targetDate,
+        },
+      },
       { new: true },
     );
 
-    console.log("session", sessionId);
-    console.log("plan", planId);
-    console.log("status", status);
-
     if (!updatedPlan) {
-      throw new NotFoundException('Không tìm thấy plan hoặc session để cập nhật');
+      throw new NotFoundException(
+        'Không tìm thấy plan hoặc session để cập nhật',
+      );
+    }
+
+    // ✅ Kiểm tra nếu tất cả session đều COMPLETED
+    const allCompleted = updatedPlan.sessions.every(
+      (s) => s.status === 'COMPLETED',
+    );
+
+    if (allCompleted && updatedPlan.status !== 'COMPLETED') {
+      updatedPlan.status = Status.COMPLETED;
+      await updatedPlan.save();
+      console.log(`✅ Plan ${planId} đã hoàn thành toàn bộ buổi tập!`);
     }
 
     return updatedPlan;
+  }
+
+  async updateProgress(
+    planId: string,
+    progressData: ProgressDto,
+  ): Promise<PlanDocument> { // <-- Thay đổi kiểu trả về
+    const plan = await this.planModel.findById(planId);
+    if (!plan) throw new NotFoundException('Không tìm thấy plan tương ứng');
+    
+    // Sửa lỗi: Nếu user gửi feedback 2 lần
+    if (plan.progress && plan.progress.difficultRating) {
+        throw new BadRequestException('Plan này đã được gửi feedback rồi!');
+    }
+
+    // 1. LƯU FEEDBACK VÀO PLAN (Tuần 1)
+    // (Mình thêm submittedAt để hoàn thiện)
+    const progressToSave = { ...progressData, submittedAt: new Date() };
+    const updatedPlan = await this.planModel.findByIdAndUpdate(
+      planId,
+      // Ghi chú: Logic updateSessionStatus của bạn đã tự set plan.status = 'COMPLETED'
+      // Nếu chưa, bạn nên set status ở đây
+      { $set: { progress: progressToSave, status: Status.COMPLETED } },
+      { new: true },
+    );
+
+    if (!updatedPlan) {
+      throw new NotFoundException(`Không tìm thấy kế hoạch với ID: ${planId}`);
+    }
+
+    // 2. KÍCH HOẠT GIAI ĐOẠN 2: GỌI AI ĐỂ TẠO PLAN MỚI (Tuần 2)
+    // Chúng ta gọi hàm mới ở Bước 1
+    const newWeekPlan = await this.triggerAiUpdate(
+      updatedPlan.userId.toString(), // Lấy userId từ plan
+      updatedPlan.currentWeek,     // Lấy currentWeek (ví dụ: 1)
+    );
+
+    // 3. TRẢ VỀ PLAN MỚI (TUẦN 2) CHO FRONTEND
+    // Frontend (ReactJS) sẽ nhận được plan tuần 2 và hiển thị nó
+    return newWeekPlan;
+  }
+
+  async triggerAiUpdate(
+    userId: string,
+    currentWeekNumber: number,
+  ): Promise<PlanDocument> { // Trả về Plan MỚI (Tuần 2)
+    try {
+      const endpoint = `${this.aiApiUrl}/update-plan`;
+      const payload = { userId, currentWeekNumber };
+      
+      console.log(`Đang gọi AI để cập nhật plan cho user: ${userId}, tuần: ${currentWeekNumber}`);
+
+      // 1. Gửi request POST đến server Flask
+      const response = await firstValueFrom(
+        this.httpService.post(endpoint, payload),
+      );
+
+      // 2. Python (Giai đoạn 2) đã tự động tạo và LƯU plan mới vào DB
+      // Nó trả về toàn bộ document plan mới đó
+      
+      // 3. Biến đổi kết quả (plain object) về Mongoose Document
+      // (Nếu bạn không cần, có thể return response.data trực tiếp)
+      const newPlan = new this.planModel(response.data);
+
+      if (!newPlan) {
+        throw new Error('AI trả về dữ liệu plan mới không hợp lệ.');
+      }
+
+      // Trả về plan mới (Tuần 2)
+      return newPlan.toObject() as PlanDocument;
+
+    } catch (error) {
+      console.error('Lỗi khi gọi AI service (update):', error.message);
+      throw new Error('Không thể cập nhật lộ trình từ AI.');
+    }
   }
 
   async remove(id: string): Promise<string> {
@@ -85,20 +203,10 @@ export class PlanService {
     return 'Xoá lộ trình tập thành công';
   }
 
-  // async findByUser(userId: string): Promise<PlanResponseDto[]> {
-  //   const plans = await this.planModel.find({ userId }).exec();
-  //   return plans.map((plan) =>
-  //     plainToInstance(PlanResponseDto, plan.toObject(), {
-  //       excludeExtraneousValues: true,
-  //     }),
-  //   );
-  // }
-
   async findByUser(userId: string): Promise<any[]> {
-  const plans = await this.planModel.find({ userId }).exec();
-  return plans.map((plan) => plan.toObject());
-}
-
+    const plans = await this.planModel.find({ userId }).exec();
+    return plans.map((plan) => plan.toObject());
+  }
 
   async getInitialPlanFromAI(userId: string): Promise<PlanDocument> {
     try {
@@ -107,7 +215,7 @@ export class PlanService {
       // Lấy profile và goals của user
       const user = await this.userModel.findById(userId).exec();
       const userData = user?.toObject();
-      
+
       // 1. GỌI AI ĐỂ LẤY ID BẢN MẪU
       // Gửi profile và goals của user mới cho AI
       const response = await firstValueFrom(
@@ -121,17 +229,21 @@ export class PlanService {
       const recommendedPlanId = response.data.recommended_plan_id;
 
       // 2. TÌM BẢN MẪU GỐC TRONG MONGODB
-      const templatePlan = await this.planModel.findById(recommendedPlanId).exec();
+      const templatePlan = await this.planModel
+        .findById(recommendedPlanId)
+        .exec();
 
       if (!templatePlan) {
-        throw new Error('Không tìm thấy kế hoạch mẫu (template) trong database!');
+        throw new Error(
+          'Không tìm thấy kế hoạch mẫu (template) trong database!',
+        );
       }
 
       // 3. TẠO BẢN SAO MỚI (COPY) VÀ SỬA ĐỔI
-      
+
       // 3a. Sửa đổi mảng 'sessions' theo yêu cầu (targetDate = rỗng, status = INCOMPLETE)
       // Chúng ta dùng .map() để tạo một mảng sessions MỚI
-      const newSessions = templatePlan.sessions.map(session => {
+      const newSessions = templatePlan.sessions.map((session) => {
         return {
           sessionNumber: session.sessionNumber,
           estimatedDuration: session.estimatedDuration,
@@ -148,16 +260,15 @@ export class PlanService {
         currentWeek: 1,
         status: 'INCOMPLETE', // <-- SET LẠI STATUS CHO PLAN CHÍNH
         sessions: newSessions, // <-- GÁN mảng sessions đã sửa đổi
-        
+
         // 2 trường này để rỗng, vì đây là plan mới
-        progress: null, 
+        progress: null,
         aiDecision: null,
       });
 
       // 4. LƯU PLAN MỚI VÀO DATABASE
       // MongoDB sẽ tự động tạo _id mới cho plan này
       return await newPlan.save();
-
     } catch (error) {
       console.error('Lỗi khi gọi AI hoặc tạo plan:', error.message);
       throw new Error('Không thể lấy được lộ trình từ AI.');
