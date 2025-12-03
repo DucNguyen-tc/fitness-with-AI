@@ -90,7 +90,16 @@ export class WorkoutService {
     if (!updatedWorkout) {
       throw new NotFoundException('Không tìm thấy bài tập để cập nhật');
     }
-    return plainToInstance(WorkoutResponseDto, updatedWorkout.toObject(), {
+    // 2. TÌM LẠI và POPULATE (Đây là bước fix lỗi)
+    // Chúng ta phải tìm lại bài tập vừa cập nhật để populate các nhóm cơ
+    const populatedWorkout = await this.workoutModel
+    .findById(updatedWorkout._id) // Tìm lại bằng ID vừa update
+    .populate('muscleGroups', 'name') // Yêu cầu Mongoose trả về tên của nhóm cơ
+    .exec();
+    if (!populatedWorkout) {
+    throw new NotFoundException('Không tìm thấy bài tập sau khi populate');
+    }
+    return plainToInstance(WorkoutResponseDto, populatedWorkout.toObject(), {
       excludeExtraneousValues: true,
     });
   }
@@ -117,7 +126,7 @@ export class WorkoutService {
       .find({ muscleGroups: muscleGroup._id })
       .populate('muscleGroups', 'name')
       .exec();
-    
+
       console.log(workouts);
 
     return workouts.map((workout) =>
