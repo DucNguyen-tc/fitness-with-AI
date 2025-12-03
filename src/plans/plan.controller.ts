@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Patch, Delete, Param } from '@nestjs/common';
 import { PlanService } from './plan.service';
-import { CreatePlanDto } from './dto/creation-plan.dto';
+import { CreatePlanDto, ProgressDto } from './dto/creation-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
 
@@ -27,10 +27,20 @@ export class PlanController {
   async updateSessionStatus(
     @Param('planId') planId: string,
     @Param('sessionId') sessionId: string,
-    @Body() body: { status: string },
+    @Body() body: { status: string, targetDate: Date },
   ) {
-    return this.planService.updateSessionStatus(planId, sessionId, body.status);
+    return this.planService.updateSessionStatus(planId, sessionId, body.status, body.targetDate);
   }
+
+  @Public()
+  @Patch(':id/progress')
+  async updateProgress(
+    @Param('id') planId: string,
+    @Body() progressDto: ProgressDto,
+  ) {
+    return await this.planService.updateProgress(planId, progressDto);
+  }
+
 
   @Delete(':id')
   remove(@Param('id') id: string) {

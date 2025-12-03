@@ -43,21 +43,12 @@ export class Session {
 }
 
 @Schema()
-export class ProgressMetrics {
-  @Prop()
-  endOfWeekWeight: number;
-
-  @Prop()
-  endOfWeekBodyFat: string;
-}
-
-@Schema()
 export class Progress {
   @Prop({ enum: DifficultyRating })
   difficultRating: DifficultyRating;
 
-  @Prop({ type: ProgressMetrics })
-  metrics: ProgressMetrics;
+  @Prop()
+  endOfWeekWeight: number;
 
   @Prop()
   submittedAt: Date;
@@ -88,10 +79,10 @@ export class Plan {
   @Prop({ required: true, enum: Status, default: Status.INCOMPLETE })
   status: Status;
 
-  @Prop({ type: Progress })
+  @Prop({ type: Progress, default: null })
   progress?: Progress;
 
-  @Prop({ type: AIDecision })
+  @Prop({ type: AIDecision, default: null })
   aiDecision?: AIDecision;
 
   @Prop()
