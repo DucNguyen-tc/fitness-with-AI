@@ -67,26 +67,7 @@ export class PlanService {
     });
   }
 
-  //   async updateSessionStatus(planId: string, sessionId: string, status: string, targetDate: Date) {
-  //   const updatedPlan = await this.planModel.findOneAndUpdate(
-  //     { _id: planId, 'sessions._id': sessionId },
-  //     {
-  //       $set: {
-  //         'sessions.$.status': status,
-  //         'sessions.$.targetDate': targetDate,
-  //       },
-  //     },
-  //     { new: true },
-  //   );
-
-  //   if (!updatedPlan) {
-  //     throw new NotFoundException('Không tìm thấy plan hoặc session để cập nhật');
-  //   }
-
-  //   return updatedPlan;
-  // }
-
-  async updateSessionStatus(
+  async updateSessionStatus( // Cập nhật trạng thái của session trong 1 plan
     planId: string,
     sessionId: string,
     status: string,
@@ -163,6 +144,7 @@ export class PlanService {
     return newWeekPlan;
   }
 
+  // gửi dữ liệu sang AI, trả về plan mỚI (tuần 2)
   async triggerAiUpdate(
     userId: string,
     currentWeekNumber: number,
@@ -208,70 +190,105 @@ export class PlanService {
     return plans.map((plan) => plan.toObject());
   }
 
-  async getInitialPlanFromAI(userId: string): Promise<PlanDocument> {
+  // Tạo mới plan tuần 1 khi user vừa tạo profile
+ async getInitialPlanFromAI(userId: string): Promise<PlanDocument> {
     try {
       const endpoint = `${this.aiApiUrl}/initial-plan`;
 
-      // Lấy profile và goals của user
+      // Lấy profile và goals của user hiện tại
       const user = await this.userModel.findById(userId).exec();
-      const userData = user?.toObject();
-
-      // 1. GỌI AI ĐỂ LẤY ID BẢN MẪU
-      // Gửi profile và goals của user mới cho AI
-      const response = await firstValueFrom(
-        this.httpService.post(endpoint, {
-          profile: userData?.profile,
-          goals: userData?.goals,
-        }),
-      );
-
-      // AI trả về ID của plan mẫu (ví dụ: '68fa5b39bb727480c221d64b')
-      const recommendedPlanId = response.data.recommended_plan_id;
-
-      // 2. TÌM BẢN MẪU GỐC TRONG MONGODB
-      const templatePlan = await this.planModel
-        .findById(recommendedPlanId)
-        .exec();
-
-      if (!templatePlan) {
-        throw new Error(
-          'Không tìm thấy kế hoạch mẫu (template) trong database!',
-        );
+      
+      if (!user) {
+        throw new Error(`Không tìm thấy User với ID: ${userId}`);
       }
 
-      // 3. TẠO BẢN SAO MỚI (COPY) VÀ SỬA ĐỔI
+      const userData = user.toObject();
 
-      // 3a. Sửa đổi mảng 'sessions' theo yêu cầu (targetDate = rỗng, status = INCOMPLETE)
-      // Chúng ta dùng .map() để tạo một mảng sessions MỚI
-      const newSessions = templatePlan.sessions.map((session) => {
+      // Chuẩn bị payload để gửi và LOG ra kiểm tra
+      const payload = {
+        profile: userData.profile,
+        goals: userData.goals,
+      };
+
+      console.log('🚀 Đang gửi Payload sang AI:', JSON.stringify(payload, null, 2));
+
+      // 1. GỌI AI ĐỂ LẤY TOÀN BỘ CẤU TRÚC PLAN (FULL JSON)
+      const response = await firstValueFrom(
+        this.httpService.post(endpoint, payload),
+      );
+
+      console.log('🚀 AI trả về data:', JSON.stringify(response.data, null, 2));
+
+      // XỬ LÝ DỮ LIỆU TRẢ VỀ
+      // Dựa vào log, Python trả về: { "recommended_plan_id": { sessions: [...] } }
+      // Nên chúng ta cần lấy giá trị bên trong key này.
+      let templateData = response.data;
+
+      if (templateData && templateData.recommended_plan_id) {
+        templateData = templateData.recommended_plan_id;
+      }
+
+      // Kiểm tra dữ liệu trả về có hợp lệ không
+      if (!templateData || !templateData.sessions) {
+        console.error('Dữ liệu không hợp lệ nhận được:', templateData);
+        throw new Error('AI không trả về dữ liệu sessions hợp lệ.');
+      }
+
+      // 2. KHÔNG CẦN TRUY VẤN DATABASE ĐỂ TÌM TEMPLATE NỮA
+
+      // 3. XỬ LÝ DỮ LIỆU TỪ AI ĐỂ TẠO PLAN MỚI
+
+      // 3a. Map lại mảng sessions để đảm bảo đúng schema và reset trạng thái
+      const newSessions = templateData.sessions.map((session) => {
         return {
           sessionNumber: session.sessionNumber,
           estimatedDuration: session.estimatedDuration,
           caloriesBurned: session.caloriesBurned,
-          exercises: session.exercises, // Copy mảng exercises y hệt
-          status: 'INCOMPLETE', // <-- Đặt lại status cho user mới
-          targetDate: null, // <-- SET VỀ RỖNG (null) NHƯ BẠN MUỐN
+          
+          // Map exercises: Dữ liệu từ Python trả về workoutId dạng string
+          // Mongoose sẽ tự động cast string này thành ObjectId khi save()
+          exercises: session.exercises.map((ex) => ({
+             workoutId: ex.workoutId,
+             order: ex.order,
+             workTime: ex.workTime,
+             restTime: ex.restTime,
+             // Lưu ý: Không cần tạo _id ở đây, MongoDB sẽ tự tạo cho từng sub-document
+          })),
+
+          status: 'INCOMPLETE', // Set trạng thái mặc định
+          targetDate: null,     // Set null để User tự chọn ngày bắt đầu hoặc FE tự tính
         };
       });
 
-      // 3b. Tạo document plan MỚI bằng Mongoose Model
+      // 3b. Tạo document Plan mới
       const newPlan = new this.planModel({
-        userId: userId, // <-- GÁN ID CỦA USER MỚI
+        userId: userId,     // Gán User sở hữu
         currentWeek: 1,
-        status: 'INCOMPLETE', // <-- SET LẠI STATUS CHO PLAN CHÍNH
-        sessions: newSessions, // <-- GÁN mảng sessions đã sửa đổi
-
-        // 2 trường này để rỗng, vì đây là plan mới
+        status: 'INCOMPLETE',
+        
+        // Dữ liệu từ AI
+        sessions: newSessions, 
+        
+        // (Tùy chọn) Lưu lại tên Template AI đã chọn để debug sau này
+        // aiDecision: { templateName: templateData.ai_generated_label }, 
+        
         progress: null,
-        aiDecision: null,
       });
 
-      // 4. LƯU PLAN MỚI VÀO DATABASE
-      // MongoDB sẽ tự động tạo _id mới cho plan này
+      // 4. LƯU VÀO DATABASE
       return await newPlan.save();
+
     } catch (error) {
-      console.error('Lỗi khi gọi AI hoặc tạo plan:', error.message);
-      throw new Error('Không thể lấy được lộ trình từ AI.');
+      // LOG CHI TIẾT LỖI TỪ AI SERVICE (QUAN TRỌNG)
+      if (error.response) {
+         console.error('❌ Lỗi từ AI Service (Data):', error.response.data);
+         console.error('❌ Lỗi từ AI Service (Status):', error.response.status);
+      } else {
+         console.error('❌ Lỗi hệ thống:', error.message);
+      }
+      
+      // Ném lỗi ra để Controller bắt được
+      throw new Error(`Không thể lấy lộ trình từ AI: ${error.message}`);
     }
-  }
+}
 }
