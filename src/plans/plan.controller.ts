@@ -23,6 +23,11 @@ export class PlanController {
     return this.planService.findOne(id);
   }
 
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateDto: UpdatePlanDto) {
+    return this.planService.update(id, updateDto);
+  }
+
   @Patch(':planId/sessions/:sessionId')
   async updateSessionStatus(
     @Param('planId') planId: string,
@@ -62,7 +67,7 @@ export class PlanController {
     // 2. LẤY CHI TIẾT PLAN TỪ DATABASE
     // Sau khi có plan_id, bạn dùng nó để truy vấn collection 'plans'
     // const planDetails = await this.planCollectionService.findById(recommendedPlanId);
-    
+
     // (Chỗ này bạn có thể phải "sao chép" planDetails,
     // gán userId mới của người dùng, weekNumber = 1,
     // và lưu một bản mới vào collection 'plans' cho user mới này)
